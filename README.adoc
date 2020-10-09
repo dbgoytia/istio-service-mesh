@@ -1,0 +1,47 @@
+= Istio Introduction
+Diego Goytia <Diego.Goytia@ibm.com>
+1.0 ,October 8, 2020
+
+
+== Istio Service Mesh
+
+Cloud-native computing and microservices come up with new caveats around how to manage our world of services. As a quick example, consider in the past era when we would manage monolithic applications, it was a little bit easier to consider a way to load balance and manage networking in our services, since we were limited to an X number of servers. But today, with thousands and thousands of microservices running in our environments, and different services, it had become increasengly hard to manage all of this to our DevOps teams.
+
+Istio is a solution that lets you secure, control, and observe all of the running services in the environment. It helps you reduce the complexity of these deployments and the strain on DevOps teams.
+
+
+
+== Core concepts
+
+*Service Mesh*
+
+A service mesh is used to describe the network of microservices that make up such applications and the interactions between them. 
+
+Covered requirements include
+. Discovery
+. Load balancing
+. Failure recovery
+. Metrics
+. Monitoring
+
+More complex operational requirements are enabled by using Istio. Note: You can do this without Istio, but try to think in the complexity of how would you address such a thing. Such requirements include:
+
+. Advanced Deployment models: A/B testing, canary rollouts
+. Advanced traffic management: rate limiting, access control
+. Advanced security: end to end authentication
+
+
+== Why use istio? 
+
+* Requires few or no changes in the code. Visit Istio documentation to review the pre-requisites.
+* You only need to add a label to the namespaces you want Istio to automatically provision Envoy as a side-car container in your pods. _review the side-car pattern_ 
+
+
+* Includes
+** Automatic load balancing for HTTP, gRPC _more on this on another section_, WebSockets, and TCP traffic.
+** Traffic control
+** Circuit breaking
+** Pluggable policy layer
+** Automatic metrics, logs, and traces for all traffic within the cluster, including egress and ingress.
+** Secure service-to-service communication in the cluster with strong identity-based authentication and authorization.
+
