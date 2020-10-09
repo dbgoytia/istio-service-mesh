@@ -1,0 +1,210 @@
+= Request routing notes
+Diego Goytia <Diego.Goytia@ibm.com>
+1.0 ,October 8, 2020
+
+https://istio.io/latest/docs/tasks/traffic-management/request-routing/
+
+== Request routing lab
+
+Keep in mind the caveats and opportunities that running a service-mesh give you. In this example we're running an Book information application that is *at the same time* running three different versions of one of the services. 
+
+Try to think about it in therms of how difficult it would be to implement this, without Istio.
+
+The three versions are running *concurrently*. To illustrate the problem, and if you followed the example in the page you'll see that the load balacing is being done in a round-robin fashion.
+
+    How in the hell would you implement this without Istio? You maybe would have to deploy load balancers inside the platform and sometimes redirect traffict to pod1, pod2, pod3. How maintainable would that be? Think about every single time you add/remove a new version, how much change and how difficult is it to keep this model up and running?
+
+
+== Virtual services
+
+In this first exaple, we will route the traffic to one versoin only. In this case, you can see that it routes all traffic to v1 of each of the microservices:
+
+
+[source, yaml]
+----
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: productpage
+spec:
+  hosts:
+  - productpage
+  http:
+  - route:
+    - destination:
+        host: productpage
+        subset: v1 <1>
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: reviews
+spec:
+  hosts:
+  - reviews
+  http:
+  - route:
+    - destination:
+        host: reviews
+        subset: v1 <1>
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: ratings
+spec:
+  hosts:
+  - ratings
+  http:
+  - route:
+    - destination:
+        host: ratings
+        subset: v1 <1>
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: details
+spec:
+  hosts:
+  - details
+  http:
+  - route:
+    - destination:
+        host: details
+        subset: v1 <1>
+---
+----
+
+
+You'll notice that your virtualservices are as follows so far:
+
+[source, shell]
+----
+[mx068393@kubeadm-master istio-1.7.1]$ kubectl get virtualservices
+NAME          GATEWAYS               HOSTS             AGE
+bookinfo      ["bookinfo-gateway"]   ["*"]             37h
+details                              ["details"]       6s
+productpage                          ["productpage"]   6s
+ratings                              ["ratings"]       6s
+reviews                              ["reviews"]       36h
+----
+
+And let's review our destination rules carefully to understand what's going on, we'll focus on the spec only, since that's what we care about. Notice how you defined in your *Destination Routes* each of the subsets (or versions) that the application has. While on your *Virtual Service*,  you've told Istio to only redirect traffic to the subset v1.
+
+    Think about this power. You can now easily change your services to point from v1, to v2. But hold on, there's more crazy stuff you can do.
+
+[source, yaml]
+----
+[mx068393@kubeadm-master istio-1.7.1]$ kubectl get destinationrules -o yaml
+apiVersion: v1
+items:
+- apiVersion: networking.istio.io/v1beta1
+  kind: DestinationRule
+  #[...omitted output...]
+  spec:
+    host: details
+    subsets:
+    - labels:
+        version: v1
+      name: v1
+    - labels:
+        version: v2
+      name: v2
+- apiVersion: networking.istio.io/v1beta1
+  kind: DestinationRule
+  #[...omitted output...]
+  spec:
+    host: productpage
+    subsets:
+    - labels:
+        version: v1
+      name: v1
+- apiVersion: networking.istio.io/v1beta1
+  kind: DestinationRule
+  #[...omitted output...]
+  spec:
+    host: ratings
+    subsets:
+    - labels:
+        version: v1
+      name: v1
+    - labels:
+        version: v2
+      name: v2
+    - labels:
+        version: v2-mysql
+      name: v2-mysql
+    - labels:
+        version: v2-mysql-vm
+      name: v2-mysql-vm
+- apiVersion: networking.istio.io/v1beta1
+  kind: DestinationRule
+ #[...omitted output...]
+  spec:
+    host: reviews
+    subsets:
+    - labels:
+        version: v1
+      name: v1
+    - labels:
+        version: v2
+      name: v2
+    - labels:
+        version: v3
+      name: v3
+kind: List
+metadata:
+  resourceVersion: ""
+  selfLink: ""
+
+----
+
+
+== Routing based on user identity
+
+In this next piece of the training, you'll configure the Virtual service so that traffic is redirected to a specific service version based on certain criteria, in this case, user identity. 
+
+    What does this even mean? Well, you can now think of this: _My company would like to test app 1 on users Javier, Jason, and Jalil, and only them._ How would you do this with the LB? Becomes really hard right? Imagine handling all those header information and so back so forth... it's a mess.
+
+In istio, you can simply update your virtual service for something like this:
+
+[source, yaml]
+----
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: reviews
+spec:
+  hosts:
+    - reviews
+  http:
+  - match: <1>
+    - headers:
+        end-user:
+          exact: jason
+    route:
+    - destination:
+        host: reviews
+        subset: v2
+  - route:
+    - destination:
+        host: reviews
+        subset: v1
+----
+<1> match the desired criteria, Jason, will be automatically routed to the subset v2 of our destination rules. The rest of the world will propagate to the v1 version of the reviews application. _Awesome right? And there's more..._
+
+Continue in the *Traffic Shifting* documentation if you'd like to continue understanding what's going on under the hood!
+
+
+
+
+
+
+
+
+
+
+
+
+

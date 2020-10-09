@@ -1,0 +1,39 @@
+= Istio Key concepts
+
+Diego Goytia <Diego.Goytia@ibm.com>
+1.0 ,October 8, 2020
+
+== Istio Key concepts
+
+== Virtual Services
+
+It is the configuration that affects traffic routing, and there are multiple terms that will help you understand what is going on.
+
+. *Service* is a unit of application behaviour bound to a unique name in a service registry. 
+
+. *Service versions (a.k.a) subsets* In a continuous deployment scenario, there can be distinct subsets of instances running different variants of the application binary. Common scenarios where this occurs icnlude A/B testing, canary rollouts, etc. (Check out my DevOps/SRE documentation for more information on this!)
+
+The criterion is around headers, url, usernames, hostnames, and practically, whatever you would like, and/or by weights assigned to each version.
+
+. *Source* is a downstream client calling a service.
+
+. *Host* The address used by a client when attempting to connect to a service.
+
+. *Access models* Applications access only the destination Host, and not caring about the actual version that is being used. The actual version is determined by the *proxy/sidecar* injected in the environment.
+    
+    Decouples the application to the routing logic inside the cluster. Try to think about in therms of how would you normally manage this kind of workload, in a scenario where you would have to redirect your app to a specific version? This becomes a mess if you're using the "deploy a load balancer in your environment" approach. Becomes hell in a container! Think about the rules you would have to add.
+
+. *Virtual Service* A virtual service defines a set of traffic routing to apply when a host is addressed. Each routing rule defines matching criteria for traffic of a specific protocol. If the traffic is matched, then it is sent to a named destination service (or subset of it), defined in the registry.
+
+    Made in simple words, the virtual service manages the logic of all the rules we need to match, in order to point a source to aparticular application version.
+
+
+== Destination Roules
+
+
+
+
+
+
+
+
